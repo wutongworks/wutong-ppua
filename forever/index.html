@@ -13,14 +13,14 @@
   #space{position:fixed; inset:0; display:block}
   .vignette{position:fixed; inset:0; pointer-events:none; z-index:2;
     background:radial-gradient(ellipse 110% 95% at 50% 46%, transparent 55%, rgba(0,0,5,.55) 100%)}
-  .ui{position:fixed; z-index:5; left:50%; bottom:26px; transform:translateX(-50%);
+  .ui{position:fixed; z-index:5; left:50%; bottom:26px; transform:translateX(-50%); margin-left:var(--vx, 0px);
     color:rgba(224,242,254,.8); font-size:11px; letter-spacing:.34em; text-indent:.34em;
     padding:13px 26px; border-radius:999px; border:1px solid rgba(147,197,253,.22);
     background:rgba(2,8,23,.34); backdrop-filter:blur(10px); cursor:pointer; transition:opacity 1.2s, color .3s, border-color .3s; font-family:inherit}
   .ui:hover{color:#fff; border-color:rgba(186,230,253,.6)}
   .ui b{color:#7dd3fc; font-weight:800}
   .ui.gone{opacity:0; pointer-events:none}
-  .hint{position:fixed; z-index:5; left:50%; bottom:76px; transform:translateX(-50%);
+  .hint{position:fixed; z-index:5; left:50%; bottom:76px; transform:translateX(-50%); margin-left:var(--vx, 0px);
     color:rgba(186,220,253,.45); font-size:10px; letter-spacing:.4em; text-indent:.4em; white-space:nowrap;
     pointer-events:none; transition:opacity 1.6s; opacity:0}
   #gate{position:fixed; inset:0; z-index:20; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px;
@@ -110,9 +110,9 @@
     const raw = document.createElement('canvas'); raw.width = W; raw.height = H;
     const m = raw.getContext('2d');
     m.fillStyle = '#fff'; m.textAlign = 'center'; m.textBaseline = 'middle';
-    const cxp = W / 2, narrow = W < 560;
-    const linesArr = narrow ? ['love you', 'forever'] : ['love you forever'];
-    let ms = Math.min(W * (narrow ? 0.19 : 0.13), 150);
+    const cxp = W / 2;
+    const linesArr = ['love you forever'];
+    let ms = Math.min(W * 0.115, 120);
     const setMain = (cc, s) => { cc.font = `italic 400 ${s}px Didot, "Bodoni MT", "Playfair Display", Georgia, "Songti SC", serif`; };
     const setName = (cc, s) => { cc.font = `300 ${s}px "Songti SC", "STSong", "PingFang SC", serif`; try { cc.letterSpacing = '26px'; } catch (e) {} };
     setMain(m, ms);
@@ -122,9 +122,9 @@
     const y0 = H * 0.40 - (linesArr.length - 1) * lineH / 2;
     linesArr.forEach((ln, i) => m.fillText(ln, cxp, y0 + i * lineH));
     const nameY = y0 + (linesArr.length - 1) * lineH + ms * 1.12;
-    let ns = Math.min(W * 0.105, 62);
+    let ns = Math.min(W * 0.16, 96);
     setName(m, ns);
-    while (m.measureText('席琼桦').width > W * 0.5 && ns > 16) { ns -= 3; setName(m, ns); }
+    while (m.measureText('席琼桦').width > W * 0.62 && ns > 16) { ns -= 3; setName(m, ns); }
     m.fillText('席琼桦', cxp, nameY);
 
     // fit by the REAL ink bounds, one uniform scale — never stretched, never off-screen.
@@ -146,7 +146,7 @@
       b.dx = cxp - (b.minX + b.maxX) / 2;
       maxBandW = Math.max(maxBandW, b.maxX - b.minX);
     }
-    const s = Math.min(1, (W * 0.8) / maxBandW, (H * 0.4) / inkH);
+    const s = Math.min(1, (W * 0.82) / maxBandW, (H * 0.4) / inkH);
     const ccy = (minY + maxY) / 2;
 
     // pure white, no glow — one clean pass of the silhouette, row by row
@@ -253,15 +253,23 @@
 
   function resize() {
     DPR = Math.min(devicePixelRatio || 1, 2);
-    W = innerWidth; H = innerHeight;
+    const vv = window.visualViewport;
+    W = vv ? vv.width : innerWidth;
+    H = vv ? vv.height : innerHeight;
     cv.width = W * DPR; cv.height = H * DPR;
     cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    cv.style.left = (vv ? vv.offsetLeft : 0) + 'px';
+    cv.style.top = (vv ? vv.offsetTop : 0) + 'px';
+    // keep the DOM pills centred on the VISIBLE area too, not the layout viewport
+    const vx = vv ? (vv.offsetLeft + vv.width / 2 - innerWidth / 2) : 0;
+    document.documentElement.style.setProperty('--vx', vx + 'px');
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.fillStyle = '#01030c'; ctx.fillRect(0, 0, W, H);
     buildText();
     buildParts();
   }
   addEventListener('resize', resize);
+  if (window.visualViewport) visualViewport.addEventListener('resize', resize);
   resize();
 
   const LINE_DELAY = 0.55, LINE_DUR = 1.7;
