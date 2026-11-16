@@ -112,7 +112,7 @@
     m.fillStyle = '#fff'; m.textAlign = 'center'; m.textBaseline = 'middle';
     const cxp = W / 2, narrow = W < 560;
     const linesArr = narrow ? ['love you', 'forever'] : ['love you forever'];
-    let ms = Math.min(W * (narrow ? 0.235 : 0.155), 168);
+    let ms = Math.min(W * (narrow ? 0.19 : 0.13), 150);
     const setMain = (cc, s) => { cc.font = `italic 400 ${s}px Didot, "Bodoni MT", "Playfair Display", Georgia, "Songti SC", serif`; };
     const setName = (cc, s) => { cc.font = `300 ${s}px "Songti SC", "STSong", "PingFang SC", serif`; try { cc.letterSpacing = '26px'; } catch (e) {} };
     setMain(m, ms);
@@ -127,22 +127,42 @@
     while (m.measureText('席琼桦').width > W * 0.5 && ns > 16) { ns -= 3; setName(m, ns); }
     m.fillText('席琼桦', cxp, nameY);
 
-    // fit by the REAL ink bounds, one uniform scale — never stretched, never off-screen
+    // fit by the REAL ink bounds, one uniform scale — never stretched, never off-screen.
+    // each row is centred by its OWN ink centre (italic swashes shift the ink vs the advance box)
     const img = m.getImageData(0, 0, W, H).data;
-    let minX = W, maxX = 0, minY = H, maxY = 0;
+    const inkAt = (x, y) => img[(y * W + x) * 4 + 3] > 110;
+    let minY = H, maxY = 0;
     for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2)
-      if (img[(y * W + x) * 4 + 3] > 110) { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
-    const inkW = Math.max(1, maxX - minX), inkH = Math.max(1, maxY - minY);
-    const s = Math.min(1, (W * 0.74) / inkW, (H * 0.4) / inkH);
-    const ccx = (minX + maxX) / 2, ccy = (minY + maxY) / 2;
+      if (inkAt(x, y)) { if (y < minY) minY = y; if (y > maxY) maxY = y; }
+    const inkH = Math.max(1, maxY - minY);
+    const bandDefs = linesArr.map((ln, i) => ({ top: y0 + i * lineH - ms * 0.62, bottom: y0 + i * lineH + ms * 0.62 }));
+    bandDefs.push({ top: nameY - ns * 0.66, bottom: nameY + ns * 0.66 });
+    let maxBandW = 1;
+    for (const b of bandDefs) {
+      b.minX = W; b.maxX = 0;
+      for (let y = Math.max(0, b.top | 0); y < Math.min(H, b.bottom); y += 2)
+        for (let x = 0; x < W; x += 2)
+          if (inkAt(x, y)) { if (x < b.minX) b.minX = x; if (x > b.maxX) b.maxX = x; }
+      b.dx = cxp - (b.minX + b.maxX) / 2;
+      maxBandW = Math.max(maxBandW, b.maxX - b.minX);
+    }
+    const s = Math.min(1, (W * 0.8) / maxBandW, (H * 0.4) / inkH);
+    const ccy = (minY + maxY) / 2;
 
-    // pure white, no glow — one clean pass of the silhouette
+    // pure white, no glow — one clean pass of the silhouette, row by row
     textLayer = document.createElement('canvas');
     textLayer.width = W * DPR; textLayer.height = H * DPR;
     layerW = W; layerH = H;
     const c = textLayer.getContext('2d');
     c.setTransform(DPR, 0, 0, DPR, 0, 0);
-    c.save(); c.translate(W / 2, H * 0.44); c.scale(s, s); c.translate(-ccx, -ccy); c.drawImage(raw, 0, 0); c.restore();
+    for (const b of bandDefs) {
+      c.save();
+      c.translate(W / 2, H * 0.44); c.scale(s, s); c.translate(-cxp, -ccy);
+      c.beginPath(); c.rect(0, b.top - 4, W, (b.bottom - b.top) + 8); c.clip();
+      c.translate(b.dx, 0);
+      c.drawImage(raw, 0, 0);
+      c.restore();
+    }
 
     // ink points of the finished layer, clustered into lines — the meteor paths
     const probe = document.createElement('canvas'); probe.width = W; probe.height = H;
