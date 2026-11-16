@@ -110,24 +110,33 @@
     const off = document.createElement('canvas'); off.width = W; off.height = H;
     const c = off.getContext('2d');
     c.fillStyle = '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle';
-    const main = Math.min(W * 0.145, 176);
-    c.font = `italic 700 ${main}px "Snell Roundhand", "Brush Script MT", "Segoe Script", "Comic Sans MS", cursive`;
-    c.lineWidth = main * 0.075; c.strokeStyle = '#fff'; c.lineJoin = 'round';
-    c.strokeText('love you forever', W / 2, H * 0.40);
-    c.fillText('love you forever', W / 2, H * 0.40);
-    const sub = Math.min(W * 0.088, 68);
-    try { c.letterSpacing = '18px'; } catch (e) {}
-    c.font = `700 ${sub}px "STKaiti", "KaiTi", "Kaiti SC", "Songti SC", serif`;
-    c.lineWidth = sub * 0.09;
-    c.strokeText('席琼桦', W / 2, H * 0.40 + main * 1.18);
-    c.fillText('席琼桦', W / 2, H * 0.40 + main * 1.18);
+    const cxp = W / 2;
+    const narrow = W < 560;
+    const linesArr = narrow ? ['love you', 'forever'] : ['love you forever'];
+    let ms = Math.min(W * (narrow ? 0.235 : 0.155), 168);
+    const setMain = s => { c.font = `italic 700 ${s}px Georgia, "Times New Roman", "Songti SC", serif`; };
+    setMain(ms);
+    const longest = linesArr.reduce((a, b) => c.measureText(a).width > c.measureText(b).width ? a : b);
+    while (c.measureText(longest).width > W * 0.9 && ms > 20) { ms -= 3; setMain(ms); }
+    c.lineWidth = ms * 0.1; c.strokeStyle = '#fff'; c.lineJoin = 'round';
+    const lineH = ms * 1.18;
+    const y0 = H * 0.40 - (linesArr.length - 1) * lineH / 2;
+    linesArr.forEach((ln, i) => { c.strokeText(ln, cxp, y0 + i * lineH); c.fillText(ln, cxp, y0 + i * lineH); });
+    const nameY = y0 + (linesArr.length - 1) * lineH + ms * 1.12;
+    let ns = Math.min(W * 0.145, 90);
+    const setName = s => { c.font = `700 ${s}px "STKaiti", "KaiTi", "Kaiti SC", "Songti SC", serif`; };
+    try { c.letterSpacing = '20px'; } catch (e) {}
+    setName(ns);
+    while (c.measureText('席琼桦').width > W * 0.68 && ns > 20) { ns -= 3; setName(ns); }
+    c.lineWidth = ns * 0.1;
+    c.strokeText('席琼桦', cxp, nameY); c.fillText('席琼桦', cxp, nameY);
     const img = c.getImageData(0, 0, W, H).data;
     for (let step = 3; step <= 8; step++) {
       targets = [];
       for (let y = 0; y < H; y += step)
         for (let x = 0; x < W; x += step)
-          if (img[(y * W + x) * 4 + 3] > 110) targets.push({ x: x + (Math.random() - 0.5) * 1.4, y: y + (Math.random() - 0.5) * 1.4 });
-      if (targets.length <= 3300) break;
+          if (img[(y * W + x) * 4 + 3] > 110) targets.push({ x: x + (Math.random() - 0.5) * 0.8, y: y + (Math.random() - 0.5) * 0.8 });
+      if (targets.length <= 3800) break;
     }
     // shuffle so the words assemble from everywhere at once
     for (let i = targets.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; const tmp = targets[i]; targets[i] = targets[j]; targets[j] = tmp; }
@@ -147,7 +156,7 @@
   }
   function buildParts() {
     parts = [];
-    const n = Math.min(3400, Math.max(1800, Math.floor(W * H / 700)));
+    const n = Math.min(3600, Math.max(2000, Math.floor(W * H / 650)));
     for (let i = 0; i < n; i++) { const p = spawn({}); p.life = Math.random() * p.maxLife; parts.push(p); }
   }
   function assignTargets() {
@@ -241,9 +250,9 @@
     }
     // halo behind the words once formed
     if (formT > 0.3) {
-      const hx = W / 2, hy = H * 0.44, hr = Math.min(W, H) * 0.62;
+      const hx = W / 2, hy = H * 0.44, hr = Math.min(W, H) * 0.88;
       const g = ctx.createRadialGradient(hx, hy, 0, hx, hy, hr);
-      g.addColorStop(0, `hsla(${hue + 16}, 90%, 62%, ${0.10 * formT})`); g.addColorStop(1, 'hsla(0,0%,0%,0)');
+      g.addColorStop(0, `hsla(${hue + 16}, 90%, 62%, ${0.07 * formT})`); g.addColorStop(1, 'hsla(0,0%,0%,0)');
       ctx.fillStyle = g; ctx.fillRect(hx - hr, hy - hr, hr * 2, hr * 2);
     }
     ctx.globalCompositeOperation = 'source-over';
@@ -275,10 +284,10 @@
       const isWord = p.target && formT > 0.25;
       if (isWord) {
         const tw = 0.8 + 0.2 * Math.sin(t * 2.1 + p.jit * 3);
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.w * 1.55, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${hue + p.hueJit * 0.5 + 14}, 95%, 66%, ${0.13 * tw * formT})`;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.w * 1.75, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${hue + p.hueJit * 0.5 + 14}, 95%, 66%, ${0.12 * tw * formT})`;
         ctx.fill();
-        ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(1.5, p.w * 0.95), 0, Math.PI * 2);
+        ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(1.6, p.w * 1.02), 0, Math.PI * 2);
         ctx.fillStyle = `hsla(${hue + p.hueJit * 0.5 + 14}, 96%, ${76 + 8 * tw}%, ${0.95 * tw * Math.min(1, formT + 0.3)})`;
         ctx.fill();
       } else {
