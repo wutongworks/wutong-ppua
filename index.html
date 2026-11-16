@@ -1,136 +1,83 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>wutong.pp.ua — Domain Collection</title>
-<meta name="description" content="wutong.pp.ua — Domain Collection">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>✦</title>
+<meta name="description" content="Deep space. A living starfield, nebulae and a black hole, drawn in code.">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { min-height: 100%; }
-  body {
-    background: #0a0c10;
-    color: #eef1f5;
-    font-family: "Avenir Next", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
-    overflow-x: hidden;
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:#01020a; overflow:hidden; font-family:"Segoe UI", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing:antialiased; color:#eef1f5}
+  ::selection{background:#7c5cff; color:#fff}
+
+  #space{position:fixed; inset:0; display:block}
+
+  .nebula{position:fixed; inset:-15%; pointer-events:none; filter:blur(60px) saturate(1.3); opacity:.8; mix-blend-mode:screen}
+  .nebula i{position:absolute; border-radius:50%}
+  .nebula i:nth-child(1){width:52vmax;height:52vmax;left:-6%;top:-12%;background:radial-gradient(circle at 40% 40%, rgba(109,40,217,.34), transparent 62%);animation:drift1 30s ease-in-out infinite alternate}
+  .nebula i:nth-child(2){width:44vmax;height:44vmax;right:-8%;top:16%;background:radial-gradient(circle at 55% 45%, rgba(37,99,235,.28), transparent 62%);animation:drift2 36s ease-in-out infinite alternate}
+  .nebula i:nth-child(3){width:36vmax;height:36vmax;left:30%;bottom:-18%;background:radial-gradient(circle at 50% 50%, rgba(13,148,136,.20), transparent 60%);animation:drift1 42s ease-in-out infinite alternate-reverse}
+  .nebula i:nth-child(4){width:26vmax;height:26vmax;right:22%;bottom:-6%;background:radial-gradient(circle at 50% 50%, rgba(219,39,119,.14), transparent 60%);animation:drift2 27s ease-in-out infinite alternate-reverse}
+  @keyframes drift1{from{transform:translate(0,0) scale(1)}to{transform:translate(6vmax,4vmax) scale(1.15)}}
+  @keyframes drift2{from{transform:translate(0,0) scale(1.1)}to{transform:translate(-5vmax,5vmax) scale(.95)}}
+
+  .vignette{position:fixed; inset:0; pointer-events:none;
+    background:radial-gradient(ellipse 105% 90% at 50% 46%, transparent 55%, rgba(0,0,5,.55) 100%)}
+
+  /* the one pill */
+  .ui{position:fixed; z-index:6; left:50%; bottom:26px; transform:translateX(-50%);
+    color:rgba(226,232,255,.7); font-size:11px; letter-spacing:.3em; text-indent:.3em;
+    padding:13px 24px; border-radius:999px; border:1px solid rgba(160,170,255,.18);
+    background:rgba(10,12,30,.3); backdrop-filter:blur(8px); cursor:pointer; transition:.3s; opacity:.8;
+    font-family:inherit}
+  .ui:hover{opacity:1; color:#fff; border-color:rgba(190,200,255,.5); transform:translateX(-50%) translateY(-2px);
+    box-shadow:0 10px 34px -10px rgba(124,92,255,.65)}
+  .ui b{color:#a78bfa; font-weight:800}
+
+  /* collection overlay */
+  .overlay{position:fixed; inset:0; z-index:10; display:none; overflow-y:auto;
+    background:rgba(2,3,12,.72); backdrop-filter:blur(14px)}
+  .overlay.open{display:block}
+  .sheet{max-width:880px; margin:0 auto; padding:64px 24px 72px; position:relative}
+  .sheet h2{text-align:center; font-size:13px; font-weight:700; letter-spacing:.42em; text-indent:.42em; text-transform:uppercase; color:#cdbffa}
+  .sheet .sub{text-align:center; margin-top:10px; font-size:12px; letter-spacing:.08em; color:#8b98a9}
+  .close{position:absolute; top:22px; right:22px; width:40px; height:40px; border-radius:50%;
+    border:1px solid rgba(160,170,255,.25); background:rgba(255,255,255,.04); color:#dfe6ff; font-size:16px; cursor:pointer; transition:.25s}
+  .close:hover{border-color:rgba(190,200,255,.6); transform:rotate(90deg)}
+  .group{margin-top:36px}
+  .group h3{font-size:11px; font-weight:600; letter-spacing:.28em; text-transform:uppercase; color:#9aa7b5; margin-bottom:12px}
+  .list{display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:10px}
+  a.item, .item{display:block; padding:14px 16px; border:1px solid rgba(160,170,255,.14); border-radius:12px;
+    background:rgba(16,18,40,.45); color:#eef1f5; text-decoration:none; transition:.25s}
+  a.item:hover{border-color:rgba(167,139,250,.6); background:rgba(30,28,64,.5); transform:translateY(-2px)}
+  .item .name{font-size:15px; font-weight:600; letter-spacing:.01em; word-break:break-all}
+  .item .note{margin-top:5px; font-size:12px; line-height:1.5; color:#9aa7b5}
+  .item .status{display:inline-block; margin-top:8px; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:#a78bfa}
+  .item.pending{opacity:.72}
+
+  @media (max-width:640px){
+    .ui{bottom:20px}
+    .sheet{padding:52px 18px 56px}
+    .list{grid-template-columns:1fr; gap:8px}
+    .group{margin-top:28px}
   }
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background:
-      radial-gradient(60% 45% at 50% 22%, rgba(245, 181, 68, 0.10), transparent 70%),
-      radial-gradient(45% 35% at 78% 82%, rgba(255, 138, 92, 0.06), transparent 70%);
-    pointer-events: none;
-  }
-  main { max-width: 880px; margin: 0 auto; padding: 72px 24px 64px; position: relative; }
-  .hero { text-align: center; }
-  .mark {
-    display: inline-block;
-    font-size: clamp(56px, 13vw, 128px);
-    font-weight: 650;
-    letter-spacing: 0.015em;
-    line-height: 1.18;
-    padding: 0 0.06em 0.14em;
-    overflow: visible;
-    background: linear-gradient(100deg, #eef1f5 20%, #f5b544 55%, #d8b26a 75%, #cdd6df 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-  }
-  .rule {
-    width: 64px;
-    height: 1px;
-    margin: 18px auto 22px;
-    background: linear-gradient(90deg, transparent, #d8b26a, transparent);
-  }
-  .domain {
-    font-size: 13px;
-    letter-spacing: 0.42em;
-    text-transform: uppercase;
-    color: #9aa7b5;
-    text-indent: 0.42em;
-  }
-  .tag {
-    margin-top: 16px;
-    font-size: 13px;
-    letter-spacing: 0.14em;
-    color: #6b7889;
-  }
-  .collection { margin-top: 64px; }
-  .collection h2 {
-    text-align: center;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.42em;
-    text-transform: uppercase;
-    color: #d8b26a;
-    text-indent: 0.42em;
-  }
-  .collection .sub {
-    text-align: center;
-    margin-top: 10px;
-    font-size: 12px;
-    letter-spacing: 0.08em;
-    color: #6b7889;
-  }
-  .group { margin-top: 36px; }
-  .group h3 {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.28em;
-    text-transform: uppercase;
-    color: #9aa7b5;
-    margin-bottom: 12px;
-  }
-  .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
-  a.item, .item {
-    display: block;
-    padding: 14px 16px;
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    background: rgba(255,255,255,0.03);
-    color: #eef1f5;
-    text-decoration: none;
-  }
-  a.item:hover { border-color: rgba(216,178,106,0.55); background: rgba(255,255,255,0.05); }
-  .item .name { font-size: 15px; font-weight: 600; letter-spacing: 0.01em; word-break: break-all; }
-  .item .note { margin-top: 5px; font-size: 12px; line-height: 1.5; color: #9aa7b5; }
-  .item .status { display: inline-block; margin-top: 8px; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #d8b26a; }
-  .item.pending { opacity: 0.72; }
-  footer { margin-top: 56px; text-align: center; font-size: 11px; letter-spacing: 0.14em; color: #4c5867; }
-  img, canvas, svg { max-width: 100%; }
-  @media (max-width: 640px) {
-    main { padding: 48px 18px 44px; }
-    .mark { font-size: clamp(52px, 16vw, 72px); }
-    .domain { font-size: 12px; letter-spacing: 0.28em; text-indent: 0.28em; }
-    .tag { font-size: 12px; letter-spacing: 0.08em; padding: 0 6px; }
-    .collection { margin-top: 44px; }
-    .collection h2 { letter-spacing: 0.28em; text-indent: 0.28em; }
-    .group { margin-top: 28px; }
-    .list { grid-template-columns: 1fr; gap: 8px; }
-    a.item, .item { padding: 13px 14px; border-radius: 10px; }
-    .item .name { font-size: 14.5px; }
-    footer { margin-top: 40px; }
-  }
-  @media (max-width: 380px) {
-    main { padding: 40px 14px 36px; }
-    .mark { font-size: 50px; }
-    .domain { letter-spacing: 0.2em; text-indent: 0.2em; }
+  @media (prefers-reduced-motion: reduce){
+    .nebula i{animation:none}
   }
 </style>
 </head>
 <body>
-  <main>
-    <section class="hero">
-      <div class="mark">wutong</div>
-      <div class="rule"></div>
-      <div class="domain">wutong.pp.ua</div>
-      <div class="tag">A quiet corner of the internet.</div>
-    </section>
+  <canvas id="space"></canvas>
+  <div class="nebula"><i></i><i></i><i></i><i></i></div>
+  <div class="vignette"></div>
 
-    <section class="collection">
+  <button class="ui" id="openBtn">DOMAIN COLLECTION <b>✦</b></button>
+
+  <div class="overlay" id="overlay" role="dialog" aria-label="Domain Collection">
+    <div class="sheet">
+      <button class="close" id="closeBtn" aria-label="Close">✕</button>
       <h2>Domain Collection</h2>
       <p class="sub">All wutong domains, in one place.</p>
 
@@ -174,8 +121,138 @@
           <div class="item pending"><span class="name">dshrelay.eu.org</span><div class="note">eu.org manual review</div><span class="status">Pending</span></div>
         </div>
       </div>
-    </section>
-    <footer>WUTONG.PP.UA</footer>
-  </main>
+    </div>
+  </div>
+
+<script>
+  // collection overlay
+  const overlay = document.getElementById('overlay');
+  document.getElementById('openBtn').addEventListener('click', () => overlay.classList.add('open'));
+  document.getElementById('closeBtn').addEventListener('click', () => overlay.classList.remove('open'));
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+  addEventListener('keydown', e => { if (e.key === 'Escape') overlay.classList.remove('open'); });
+
+  const cv = document.getElementById('space'), ctx = cv.getContext('2d');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W = 0, H = 0, DPR = 1, CX = 0, CY = 0, R = 0;
+  let mx = 0, my = 0, tx = 0, ty = 0;
+
+  function resize() {
+    DPR = Math.min(devicePixelRatio || 1, 2);
+    W = innerWidth; H = innerHeight;
+    cv.width = W * DPR; cv.height = H * DPR;
+    cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    CX = W / 2; CY = H * 0.46;
+    R = Math.min(W, H) * 0.16;
+    buildStars();
+  }
+
+  let stars = [];
+  function buildStars() {
+    stars = [];
+    const n = Math.min(900, Math.floor(W * H / 1600));
+    for (let i = 0; i < n; i++) {
+      stars.push({
+        x: Math.random() * W, y: Math.random() * H,
+        z: 0.25 + Math.random() * 0.75,
+        r: Math.random() * 1.4 + 0.2,
+        tw: Math.random() * Math.PI * 2,
+        hue: Math.random() < 0.12 ? (200 + Math.random() * 60) : (Math.random() < 0.08 ? 35 : 0)
+      });
+    }
+  }
+
+  const disk = [];
+  for (let i = 0; i < 700; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const rad = 1.25 + Math.pow(Math.random(), 1.6) * 1.9;
+    disk.push({ a, rad, sp: (0.55 / Math.pow(rad, 1.5)) * (0.7 + Math.random() * 0.6), s: Math.random() * 1.8 + 0.4,
+      warm: Math.random() });
+  }
+
+  let meteors = [];
+  function spawnMeteor() {
+    meteors.push({ x: Math.random() * W * 0.7 + W * 0.2, y: Math.random() * H * 0.3, vx: -(6 + Math.random() * 5), vy: 3.4 + Math.random() * 2.4, life: 1 });
+  }
+
+  addEventListener('pointermove', e => { tx = (e.clientX / W - 0.5); ty = (e.clientY / H - 0.5); }, { passive: true });
+  addEventListener('resize', resize);
+  resize();
+
+  let t = 0;
+  function frame() {
+    t += 0.016;
+    mx += (tx - mx) * 0.03; my += (ty - my) * 0.03;
+    const px = mx * 18, py = my * 12;
+
+    ctx.clearRect(0, 0, W, H);
+    const base = ctx.createRadialGradient(CX + px * 0.4, CY + py * 0.4, 0, CX, CY, Math.max(W, H) * 0.75);
+    base.addColorStop(0, '#070a24'); base.addColorStop(0.45, '#03040f'); base.addColorStop(1, '#01020a');
+    ctx.fillStyle = base; ctx.fillRect(0, 0, W, H);
+
+    for (const s of stars) {
+      s.y += s.z * 0.14; s.x += s.z * 0.05;
+      if (s.y > H + 2) { s.y = -2; s.x = Math.random() * W; }
+      if (s.x > W + 2) { s.x = -2; }
+      const tw = 0.55 + 0.45 * Math.sin(t * (1 + s.z * 2) + s.tw);
+      const a = tw * (0.35 + s.z * 0.65);
+      ctx.beginPath();
+      ctx.arc(s.x + px * s.z, s.y + py * s.z, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = s.hue ? `hsla(${s.hue}, 90%, 78%, ${a})` : `rgba(235,240,255,${a})`;
+      if (s.z > 0.85 && s.r > 1.1) { ctx.shadowColor = 'rgba(200,210,255,.9)'; ctx.shadowBlur = 8; } else ctx.shadowBlur = 0;
+      ctx.fill(); ctx.shadowBlur = 0;
+    }
+
+    if (Math.random() < 0.006 && meteors.length < 2) spawnMeteor();
+    meteors = meteors.filter(m => m.life > 0);
+    for (const m of meteors) {
+      m.x += m.vx; m.y += m.vy; m.life -= 0.012;
+      const grad = ctx.createLinearGradient(m.x, m.y, m.x - m.vx * 9, m.y - m.vy * 9);
+      grad.addColorStop(0, `rgba(255,255,255,${0.85 * m.life})`); grad.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.strokeStyle = grad; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x - m.vx * 9, m.y - m.vy * 9); ctx.stroke();
+    }
+
+    const cx = CX + px, cy = CY + py;
+
+    let g = ctx.createRadialGradient(cx, cy, R * 0.6, cx, cy, R * 3.6);
+    g.addColorStop(0, 'rgba(150,110,255,.20)'); g.addColorStop(0.4, 'rgba(90,70,220,.10)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(cx - R * 3.6, cy - R * 3.6, R * 7.2, R * 7.2);
+
+    drawDisk(cx, cy, Math.PI, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(cx, cy, R * 1.06, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,214,150,.85)'; ctx.lineWidth = 2.4;
+    ctx.shadowColor = 'rgba(255,180,90,.95)'; ctx.shadowBlur = 26; ctx.stroke(); ctx.shadowBlur = 0;
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    const hole = ctx.createRadialGradient(cx, cy, R * 0.2, cx, cy, R);
+    hole.addColorStop(0, '#000'); hole.addColorStop(0.85, '#000'); hole.addColorStop(1, 'rgba(0,0,0,.92)');
+    ctx.fillStyle = hole; ctx.fill();
+    drawDisk(cx, cy, 0, Math.PI);
+
+    function drawDisk(cx, cy, a0, a1) {
+      ctx.save();
+      ctx.translate(cx, cy); ctx.scale(1, 0.36); ctx.translate(-cx, -cy);
+      ctx.beginPath(); ctx.arc(cx, cy, R * 2.15, a0, a1);
+      ctx.strokeStyle = 'rgba(255,170,80,.13)'; ctx.lineWidth = R * 0.85;
+      ctx.shadowColor = 'rgba(255,150,60,.55)'; ctx.shadowBlur = 34; ctx.stroke(); ctx.shadowBlur = 0;
+      ctx.beginPath(); ctx.arc(cx, cy, R * 1.62, a0, a1);
+      ctx.strokeStyle = 'rgba(255,205,130,.20)'; ctx.lineWidth = R * 0.4; ctx.stroke();
+      for (const p of disk) {
+        if (p.a < a0 || p.a > a1) continue;
+        const x = cx + Math.cos(p.a) * R * p.rad, y = cy + Math.sin(p.a) * R * p.rad;
+        const hot = p.warm;
+        ctx.beginPath(); ctx.arc(x, y, p.s * 2.2, 0, Math.PI * 2);
+        ctx.fillStyle = hot > 0.75 ? 'rgba(255,226,170,.95)' : hot > 0.4 ? 'rgba(255,178,102,.8)' : 'rgba(196,150,255,.65)';
+        ctx.fill();
+      }
+      ctx.restore();
+      if (a0 === Math.PI) for (const p of disk) { p.a += p.sp * 0.016; if (p.a > Math.PI * 2) p.a -= Math.PI * 2; }
+    }
+
+    if (!reduce) requestAnimationFrame(frame);
+  }
+  frame();
+</script>
 </body>
 </html>
