@@ -23,16 +23,63 @@
   .hint{position:fixed; z-index:5; left:50%; bottom:76px; transform:translateX(-50%);
     color:rgba(186,220,253,.45); font-size:10px; letter-spacing:.4em; text-indent:.4em; white-space:nowrap;
     pointer-events:none; transition:opacity 1.6s; opacity:0}
+  #gate{position:fixed; inset:0; z-index:20; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px;
+    background:rgba(1,3,12,.66); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); transition:opacity 1.1s}
+  #gate.gone{opacity:0; pointer-events:none}
+  #gate .star{color:#7dd3fc; font-size:22px; animation:pulse 2.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
+  #gate .q{color:rgba(224,242,254,.85); font-size:14px; letter-spacing:.5em; text-indent:.5em}
+  #gateRow{display:flex; gap:10px; align-items:center}
+  #pw{width:210px; padding:13px 20px; border-radius:999px; border:1px solid rgba(147,197,253,.3);
+    background:rgba(2,8,23,.5); color:#e0f2fe; font-size:15px; letter-spacing:.14em; text-align:center; outline:none; font-family:inherit}
+  #pw:focus{border-color:rgba(186,230,253,.7)}
+  #go{padding:13px 24px; border-radius:999px; border:1px solid rgba(147,197,253,.3); background:rgba(2,8,23,.5);
+    color:rgba(224,242,254,.85); font-size:12px; letter-spacing:.3em; text-indent:.3em; cursor:pointer; font-family:inherit; transition:.3s}
+  #go:hover{color:#fff; border-color:rgba(186,230,253,.7)}
+  #gate .err{color:rgba(253,186,186,.0); font-size:11px; letter-spacing:.3em; text-indent:.3em; transition:color .3s; height:14px}
+  #gate .err.show{color:rgba(253,186,186,.85)}
+  .shake{animation:shake .45s}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(4px)}}
   @media (max-width:640px){ .ui{bottom:20px} .hint{bottom:68px} }
 </style>
 </head>
 <body>
   <canvas id="space"></canvas>
   <div class="vignette"></div>
+  <div id="gate">
+    <div class="star">✦</div>
+    <div class="q">只属于两个人</div>
+    <div id="gateRow">
+      <input id="pw" type="password" placeholder="输入口令" autocomplete="off">
+      <button id="go">进入</button>
+    </div>
+    <div class="err" id="err">口令不对，再想想</div>
+  </div>
   <div class="hint" id="hint">TAP TO LET IT DRIFT AWAY</div>
   <button class="ui" id="enterBtn">ENTER <b>✦</b></button>
 
 <script>
+  // ---------- the gate ----------
+  (function gate() {
+    const g = document.getElementById('gate');
+    if (sessionStorage.getItem('forever-ok') === '1') { g.classList.add('gone'); return; }
+    const pw = document.getElementById('pw'), err = document.getElementById('err');
+    function tryOpen() {
+      if (pw.value === '老公我爱你') {
+        sessionStorage.setItem('forever-ok', '1');
+        err.classList.remove('show');
+        g.classList.add('gone');
+      } else {
+        err.classList.add('show');
+        g.classList.remove('shake'); void g.offsetWidth; g.classList.add('shake');
+        pw.select();
+      }
+    }
+    document.getElementById('go').addEventListener('click', tryOpen);
+    pw.addEventListener('keydown', e => { if (e.key === 'Enter') tryOpen(); });
+    setTimeout(() => { try { pw.focus(); } catch (e) {} }, 350);
+  })();
+
   const cv = document.getElementById('space'), ctx = cv.getContext('2d');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let W = 0, H = 0, DPR = 1;
