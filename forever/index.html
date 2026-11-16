@@ -36,7 +36,7 @@
   #go{padding:13px 24px; border-radius:999px; border:1px solid rgba(147,197,253,.3); background:rgba(2,8,23,.5);
     color:rgba(224,242,254,.85); font-size:12px; letter-spacing:.3em; text-indent:.3em; cursor:pointer; font-family:inherit; transition:.3s}
   #go:hover{color:#fff; border-color:rgba(186,230,253,.7)}
-  #gate .err{color:rgba(253,186,186,.0); font-size:11px; letter-spacing:.3em; text-indent:.3em; transition:color .3s; height:14px}
+  #gate .err{color:rgba(253,186,186,0); font-size:11px; letter-spacing:.3em; text-indent:.3em; transition:color .3s; height:14px}
   #gate .err.show{color:rgba(253,186,186,.85)}
   .shake{animation:shake .45s}
   @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(4px)}}
@@ -84,8 +84,8 @@
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let W = 0, H = 0, DPR = 1;
   let t = 0;
-  let mode = 'flow';                 // flow | forming | formed | release
-  let formT = 0;                     // 0..1 formation blend
+  let mode = 'flow';                 // flow | tracing | lit | fading
+  let traceStart = 0, fadeStart = 0, litAlpha = 0;
   let surge = 0, surgeOn = false;
   const ptr = { x: -9999, y: -9999, vx: 0, vy: 0, down: false, downT: 0, lastX: 0, lastY: 0, moved: 0 };
 
@@ -104,64 +104,81 @@
   }
   function baseHue() { return 192 + 78 * (0.5 + 0.5 * Math.sin(t * 0.011)); }
 
-  // ---------- text targets, sampled from real letterforms ----------
-  let targets = [];
-  function sampleText() {
-    const off = document.createElement('canvas'); off.width = W; off.height = H;
-    const c = off.getContext('2d');
-    c.fillStyle = '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle';
-    const cxp = W / 2;
-    const narrow = W < 560;
+  // ---------- the words, rendered once as a glowing layer ----------
+  let textLayer = null, lines = [];   // lines: {top, bottom, pts sorted by x}
+  function buildText() {
+    const mask = document.createElement('canvas'); mask.width = W; mask.height = H;
+    const m = mask.getContext('2d');
+    m.fillStyle = '#fff'; m.textAlign = 'center'; m.textBaseline = 'middle';
+    const cxp = W / 2, narrow = W < 560;
     const linesArr = narrow ? ['love you', 'forever'] : ['love you forever'];
     let ms = Math.min(W * (narrow ? 0.235 : 0.155), 168);
-    const setMain = s => { c.font = `italic 700 ${s}px Georgia, "Times New Roman", "Songti SC", serif`; };
+    const setMain = s => { m.font = `italic 700 ${s}px Georgia, "Times New Roman", "Songti SC", serif`; };
     setMain(ms);
-    const longest = linesArr.reduce((a, b) => c.measureText(a).width > c.measureText(b).width ? a : b);
-    while (c.measureText(longest).width > W * 0.9 && ms > 20) { ms -= 3; setMain(ms); }
-    c.lineWidth = ms * 0.1; c.strokeStyle = '#fff'; c.lineJoin = 'round';
+    const longest = linesArr.reduce((a, b) => m.measureText(a).width > m.measureText(b).width ? a : b);
+    while (m.measureText(longest).width > W * 0.9 && ms > 20) { ms -= 3; setMain(ms); }
     const lineH = ms * 1.18;
     const y0 = H * 0.40 - (linesArr.length - 1) * lineH / 2;
-    linesArr.forEach((ln, i) => { c.strokeText(ln, cxp, y0 + i * lineH); c.fillText(ln, cxp, y0 + i * lineH); });
+    const bands = [];
+    linesArr.forEach((ln, i) => {
+      const y = y0 + i * lineH;
+      m.fillText(ln, cxp, y);
+      bands.push({ top: y - ms * 0.62, bottom: y + ms * 0.62, kind: 'main' });
+    });
     const nameY = y0 + (linesArr.length - 1) * lineH + ms * 1.12;
     let ns = Math.min(W * 0.145, 90);
-    const setName = s => { c.font = `700 ${s}px "STKaiti", "KaiTi", "Kaiti SC", "Songti SC", serif`; };
-    try { c.letterSpacing = '20px'; } catch (e) {}
+    const setName = s => { m.font = `700 ${s}px "STKaiti", "KaiTi", "Kaiti SC", "Songti SC", serif`; };
+    try { m.letterSpacing = '20px'; } catch (e) {}
     setName(ns);
-    while (c.measureText('席琼桦').width > W * 0.68 && ns > 20) { ns -= 3; setName(ns); }
-    c.lineWidth = ns * 0.1;
-    c.strokeText('席琼桦', cxp, nameY); c.fillText('席琼桦', cxp, nameY);
-    const img = c.getImageData(0, 0, W, H).data;
-    for (let step = 3; step <= 8; step++) {
-      targets = [];
-      for (let y = 0; y < H; y += step)
-        for (let x = 0; x < W; x += step)
-          if (img[(y * W + x) * 4 + 3] > 110) targets.push({ x: x + (Math.random() - 0.5) * 0.8, y: y + (Math.random() - 0.5) * 0.8 });
-      if (targets.length <= 3800) break;
+    while (m.measureText('席琼桦').width > W * 0.68 && ns > 20) { ns -= 3; setName(ns); }
+    m.fillText('席琼桦', cxp, nameY);
+    bands.push({ top: nameY - ns * 0.66, bottom: nameY + ns * 0.66, kind: 'name' });
+
+    // glowing render of the same layout
+    textLayer = document.createElement('canvas');
+    textLayer.width = W * DPR; textLayer.height = H * DPR;
+    const c = textLayer.getContext('2d'); c.scale(DPR, DPR);
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    const drawAll = (pass) => {
+      linesArr.forEach((ln, i) => { setMainOn(c, ms); c.fillText(ln, cxp, y0 + i * lineH); });
+      setNameOn(c, ns); c.fillText('席琼桦', cxp, nameY);
+    };
+    function setMainOn(cc, s) { cc.font = `italic 700 ${s}px Georgia, "Times New Roman", "Songti SC", serif`; }
+    function setNameOn(cc, s) { cc.font = `700 ${s}px "STKaiti", "KaiTi", "Kaiti SC", "Songti SC", serif`; try { cc.letterSpacing = '20px'; } catch (e) {} }
+    const hue = baseHue();
+    c.shadowColor = `hsla(${hue + 20}, 95%, 68%, .95)`;
+    for (const [blur, style] of [[26, `hsla(${hue + 24}, 92%, 62%, .55)`], [13, `hsla(${hue + 12}, 95%, 74%, .8)`], [4, 'rgba(240,249,255,.96)']]) {
+      c.shadowBlur = blur; c.fillStyle = style; drawAll();
     }
-    // shuffle so the words assemble from everywhere at once
-    for (let i = targets.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; const tmp = targets[i]; targets[i] = targets[j]; targets[j] = tmp; }
+    c.shadowBlur = 0;
+
+    // ink points per band, sorted by x — the meteor paths
+    const img = m.getImageData(0, 0, W, H).data;
+    lines = bands.map(b => ({ ...b, pts: [] }));
+    for (let y = 0; y < H; y += 3)
+      for (let x = 0; x < W; x += 3)
+        if (img[(y * W + x) * 4 + 3] > 110) {
+          const L = lines.find(L => y >= L.top && y <= L.bottom);
+          if (L) L.pts.push({ x, y });
+        }
+    for (const L of lines) L.pts.sort((a, b) => a.x - b.x);
   }
 
-  // ---------- particles ----------
+  // ---------- ambient river ----------
   let parts = [];
   function spawn(p) {
     p.x = Math.random() * W; p.y = Math.random() * H;
-    p.px = p.x; p.py = p.y; p.vx = 0; p.vy = 0;
+    p.px = p.x; p.py = p.y;
     p.life = 0; p.maxLife = 300 + Math.random() * 460;
     p.speed = 0.55 + Math.random() * 0.95;
     p.hueJit = (Math.random() - 0.5) * 46;
     p.w = Math.random() * 1.5 + 0.5;
-    p.target = null; p.jit = Math.random() * Math.PI * 2;
     return p;
   }
   function buildParts() {
     parts = [];
-    const n = Math.min(3600, Math.max(2000, Math.floor(W * H / 650)));
+    const n = Math.min(1500, Math.floor(W * H / 1250));
     for (let i = 0; i < n; i++) { const p = spawn({}); p.life = Math.random() * p.maxLife; parts.push(p); }
-  }
-  function assignTargets() {
-    for (let i = 0; i < parts.length; i++)
-      parts[i].target = i < targets.length ? targets[i] : null;
   }
   let sparks = [];
   function spawnSparks(x, y, power, hue) {
@@ -171,6 +188,15 @@
       sparks.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1, decay: 0.012 + Math.random() * 0.02, hue: hue + (Math.random() - 0.5) * 40 });
     }
   }
+
+  // ---------- meteor heads that trace the strokes ----------
+  let heads = [];
+  function addHead(lineIdx, speed) {
+    const L = lines[lineIdx];
+    if (!L || !L.pts.length) return;
+    heads.push({ line: lineIdx, p: 0, speed, x: L.pts[0].x, y: L.pts[0].y, trail: [], sweep: true });
+  }
+  let nextSweep = 0;
 
   // ---------- interaction ----------
   addEventListener('pointermove', e => {
@@ -191,21 +217,20 @@
     if (e.target.closest('.ui')) return;
     const quick = performance.now() - ptr.downT < 260 && ptr.moved < 12;
     if (!quick) return;
-    if (mode === 'formed' || mode === 'forming') {          // tap: let it drift away
-      mode = 'release';
+    if (mode === 'lit' || mode === 'tracing') {
+      mode = 'fading'; fadeStart = t;
       document.getElementById('enterBtn').classList.remove('gone');
       document.getElementById('hint').style.opacity = '0';
-    } else {
+    } else if (mode === 'flow') {
       spawnSparks(e.clientX, e.clientY, 0.55, baseHue());
     }
   });
   document.getElementById('enterBtn').addEventListener('click', () => {
-    if (mode === 'flow' || mode === 'release') {
+    if (mode === 'flow' || mode === 'fading') {
       surgeOn = true;
-      mode = 'forming';
-      assignTargets();
+      mode = 'tracing'; traceStart = t; litAlpha = 0; heads = [];
       document.getElementById('enterBtn').classList.add('gone');
-      setTimeout(() => { document.getElementById('hint').style.opacity = '0.45'; }, 3400);
+      setTimeout(() => { document.getElementById('hint').style.opacity = '0.45'; }, 4200);
     }
   });
 
@@ -216,12 +241,18 @@
     cv.style.width = W + 'px'; cv.style.height = H + 'px';
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.fillStyle = '#01030c'; ctx.fillRect(0, 0, W, H);
-    sampleText();
+    buildText();
     buildParts();
-    if (mode === 'forming' || mode === 'formed') assignTargets();
   }
   addEventListener('resize', resize);
   resize();
+
+  const LINE_DELAY = 0.55, LINE_DUR = 1.7;
+  function lineProgress(i) {
+    if (mode === 'lit') return 1;
+    if (mode !== 'tracing') return 0;
+    return Math.max(0, Math.min(1, (t - traceStart - i * LINE_DELAY) / LINE_DUR));
+  }
 
   function frame() {
     t += 0.016;
@@ -229,14 +260,17 @@
     else surge = Math.max(0, surge - 0.005);
     const timeScale = 1 + surge * 2.1;
     const hue = baseHue() + surge * 34;
-    if (mode === 'forming') { formT = Math.min(1, formT + 0.006); if (formT >= 1) mode = 'formed'; }
-    if (mode === 'release') { formT = Math.max(0, formT - 0.01); if (formT <= 0) { mode = 'flow'; for (const p of parts) p.target = null; } }
+    if (mode === 'tracing' && lineProgress(lines.length - 1) >= 1) { mode = 'lit'; nextSweep = t + 2.5; }
+    if (mode === 'lit') litAlpha = Math.min(1, litAlpha + 0.02);
+    if (mode === 'fading') { litAlpha = Math.max(0, 1 - (t - fadeStart) / 1.4); if (litAlpha <= 0) mode = 'flow'; }
+    const wordPresence = mode === 'tracing' ? 1 : litAlpha;
 
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = 'rgba(1,3,12,0.078)';
     ctx.fillRect(0, 0, W, H);
 
     ctx.globalCompositeOperation = 'screen';
+    const glowDim = 1 - wordPresence * 0.5;
     const glows = [
       [0.24 + 0.05 * Math.sin(t * 0.05), 0.26 + 0.04 * Math.cos(t * 0.04), 0.55, hue - 30, 0.05],
       [0.78 + 0.05 * Math.cos(t * 0.04 + 2), 0.7 + 0.05 * Math.sin(t * 0.045), 0.5, hue + 26, 0.045],
@@ -245,19 +279,20 @@
     for (const [fx, fy, fr, hh, al] of glows) {
       const gx = fx * W, gy = fy * H, gr = fr * Math.max(W, H);
       const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, gr);
-      g.addColorStop(0, `hsla(${hh}, 85%, 55%, ${al * (1 - formT * 0.55)})`); g.addColorStop(1, 'hsla(0,0%,0%,0)');
+      g.addColorStop(0, `hsla(${hh}, 85%, 55%, ${al * glowDim})`); g.addColorStop(1, 'hsla(0,0%,0%,0)');
       ctx.fillStyle = g; ctx.fillRect(gx - gr, gy - gr, gr * 2, gr * 2);
     }
-    // halo behind the words once formed
-    if (formT > 0.3) {
+    if (wordPresence > 0.05) {
       const hx = W / 2, hy = H * 0.44, hr = Math.min(W, H) * 0.88;
       const g = ctx.createRadialGradient(hx, hy, 0, hx, hy, hr);
-      g.addColorStop(0, `hsla(${hue + 16}, 90%, 62%, ${0.07 * formT})`); g.addColorStop(1, 'hsla(0,0%,0%,0)');
+      g.addColorStop(0, `hsla(${hue + 16}, 90%, 62%, ${0.07 * wordPresence})`); g.addColorStop(1, 'hsla(0,0%,0%,0)');
       ctx.fillStyle = g; ctx.fillRect(hx - hr, hy - hr, hr * 2, hr * 2);
     }
     ctx.globalCompositeOperation = 'source-over';
 
+    // river particles, dimmed while the words are lit
     ctx.lineCap = 'round';
+    const riverAlpha = 1 - wordPresence * 0.55;
     for (const p of parts) {
       p.px = p.x; p.py = p.y;
       const a = fieldAngle(p.x, p.y);
@@ -268,39 +303,71 @@
         vx += ptr.vx * f * 0.55 + (-dy / d) * f * 0.7;
         vy += ptr.vy * f * 0.55 + (dx / d) * f * 0.7;
       }
-      if (p.target && formT > 0) {
-        // spring home to the letterform, breathing gently once there
-        const breathe = formT >= 1 ? Math.sin(t * 1.6 + p.jit) * 0.45 : 0;
-        const gx = p.target.x + Math.cos(p.jit + t * 0.7) * breathe;
-        const gy = p.target.y + Math.sin(p.jit * 1.3 + t * 0.6) * breathe;
-        p.vx += (gx - p.x) * 0.021 * formT;
-        p.vy += (gy - p.y) * 0.021 * formT;
-        p.vx *= 0.88; p.vy *= 0.88;
-        vx = vx * (1 - formT) + p.vx;
-        vy = vy * (1 - formT) + p.vy;
-      } else { p.vx = 0; p.vy = 0; }
       p.x += vx; p.y += vy;
       p.life++;
-      const isWord = p.target && formT > 0.25;
-      if (isWord) {
-        const tw = 0.8 + 0.2 * Math.sin(t * 2.1 + p.jit * 3);
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.w * 1.75, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${hue + p.hueJit * 0.5 + 14}, 95%, 66%, ${0.12 * tw * formT})`;
-        ctx.fill();
-        ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(1.6, p.w * 1.02), 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${hue + p.hueJit * 0.5 + 14}, 96%, ${76 + 8 * tw}%, ${0.95 * tw * Math.min(1, formT + 0.3)})`;
-        ctx.fill();
-      } else {
-        const fade = Math.min(1, Math.min(p.life / 30, (p.maxLife - p.life) / 30));
-        const spd = Math.min(1, Math.hypot(vx, vy) / 2.6);
-        ctx.strokeStyle = `hsla(${hue + p.hueJit + spd * 26 + p.y / H * 18}, 92%, ${58 + spd * 20}%, ${0.5 * fade * (1 - formT * 0.5)})`;
-        ctx.lineWidth = p.w;
-        ctx.beginPath(); ctx.moveTo(p.px, p.py); ctx.lineTo(p.x, p.y); ctx.stroke();
-      }
-      if (p.life > p.maxLife && !p.target) spawn(p);
-      if (p.x < -20 || p.x > W + 20 || p.y < -20 || p.y > H + 20) { if (!p.target) spawn(p); else { p.x = Math.max(2, Math.min(W - 2, p.x)); p.y = Math.max(2, Math.min(H - 2, p.y)); } }
+      const fade = Math.min(1, Math.min(p.life / 30, (p.maxLife - p.life) / 30));
+      const spd = Math.min(1, Math.hypot(vx, vy) / 2.6);
+      ctx.strokeStyle = `hsla(${hue + p.hueJit + spd * 26 + p.y / H * 18}, 92%, ${58 + spd * 20}%, ${0.5 * fade * riverAlpha})`;
+      ctx.lineWidth = p.w;
+      ctx.beginPath(); ctx.moveTo(p.px, p.py); ctx.lineTo(p.x, p.y); ctx.stroke();
+      if (p.life > p.maxLife || p.x < -20 || p.x > W + 20 || p.y < -20 || p.y > H + 20) spawn(p);
     }
 
+    // the words, revealed line by line behind the meteors
+    if (textLayer && mode !== 'flow') {
+      for (let i = 0; i < lines.length; i++) {
+        const L = lines[i];
+        const p = mode === 'tracing' ? lineProgress(i) : 1;
+        if (p <= 0) continue;
+        const frontier = -20 + p * (W + 40);
+        ctx.save();
+        ctx.globalAlpha = mode === 'tracing' ? Math.min(1, p * 1.6) : litAlpha * (0.92 + 0.08 * Math.sin(t * 1.4));
+        ctx.beginPath(); ctx.rect(0, L.top - 6, frontier, (L.bottom - L.top) + 12); ctx.clip();
+        ctx.drawImage(textLayer, 0, 0, W, H);
+        ctx.restore();
+        // its tracing meteor
+        if (mode === 'tracing' && p > 0 && p < 1 && L.pts.length) {
+          const idx = Math.min(L.pts.length - 1, Math.floor(p * L.pts.length));
+          const pt = L.pts[idx];
+          drawMeteor(pt.x, pt.y, hue, frontier);
+        }
+      }
+      // twinkles on the ink once lit
+      if (mode === 'lit') {
+        for (let k = 0; k < 3; k++) {
+          const L = lines[(Math.random() * lines.length) | 0];
+          if (!L || !L.pts.length) continue;
+          const pt = L.pts[(Math.random() * L.pts.length) | 0];
+          ctx.beginPath(); ctx.arc(pt.x, pt.y, 1.3 + Math.random() * 1.4, 0, Math.PI * 2);
+          ctx.fillStyle = `hsla(${hue + 20}, 100%, 88%, ${0.35 + Math.random() * 0.5})`;
+          ctx.fill();
+        }
+        // a meteor re-traces a line now and then
+        if (t > nextSweep) { addHead((Math.random() * lines.length) | 0, 0.55 + Math.random() * 0.4); nextSweep = t + 3.2 + Math.random() * 3.4; }
+      }
+    }
+    // sweep heads (re-tracing passes over already-lit words)
+    for (const h of heads) {
+      const L = lines[h.line];
+      h.p += 0.016 * h.speed / LINE_DUR * 1.4;
+      const idx = Math.min(L.pts.length - 1, Math.floor(h.p * L.pts.length));
+      const pt = L.pts[Math.max(0, idx)];
+      h.x += (pt.x - h.x) * 0.5; h.y += (pt.y - h.y) * 0.5;
+      h.trail.unshift({ x: h.x, y: h.y });
+      if (h.trail.length > 16) h.trail.pop();
+      for (let j = h.trail.length - 1; j > 0; j--) {
+        const a = (1 - j / h.trail.length) * 0.5;
+        ctx.strokeStyle = `hsla(${hue + 24}, 96%, 78%, ${a})`;
+        ctx.lineWidth = 2.4 * (1 - j / h.trail.length) + 0.4;
+        ctx.beginPath(); ctx.moveTo(h.trail[j].x, h.trail[j].y); ctx.lineTo(h.trail[j - 1].x, h.trail[j - 1].y); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(h.x, h.y, 2.6, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(245,252,255,.95)';
+      ctx.shadowColor = `hsla(${hue + 20}, 95%, 70%, 1)`; ctx.shadowBlur = 14; ctx.fill(); ctx.shadowBlur = 0;
+    }
+    heads = heads.filter(h => h.p < 1.05);
+
+    // tap sparks
     for (const s of sparks) {
       const sx = s.x, sy = s.y;
       s.x += s.vx; s.y += s.vy; s.vx *= 0.97; s.vy *= 0.97; s.life -= s.decay;
@@ -319,6 +386,17 @@
     ctx.globalCompositeOperation = 'source-over';
 
     if (!reduce) requestAnimationFrame(frame);
+  }
+  function drawMeteor(x, y, hue, frontier) {
+    const len = 64;
+    const g = ctx.createLinearGradient(x - len, y, x, y);
+    g.addColorStop(0, 'hsla(0,0%,100%,0)');
+    g.addColorStop(1, `hsla(${hue + 24}, 96%, 82%, .75)`);
+    ctx.strokeStyle = g; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(Math.max(0, x - len), y); ctx.lineTo(x, y); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(245,252,255,.97)';
+    ctx.shadowColor = `hsla(${hue + 20}, 95%, 70%, 1)`; ctx.shadowBlur = 16; ctx.fill(); ctx.shadowBlur = 0;
   }
   frame();
 </script>
