@@ -100,6 +100,25 @@
   .item .status { display: inline-block; margin-top: 8px; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #d8b26a; }
   .item.pending { opacity: 0.72; }
   footer { margin-top: 56px; text-align: center; font-size: 11px; letter-spacing: 0.14em; color: #4c5867; }
+  img, canvas, svg { max-width: 100%; }
+  @media (max-width: 640px) {
+    main { padding: 48px 18px 44px; }
+    .mark { font-size: clamp(52px, 16vw, 72px); }
+    .domain { font-size: 12px; letter-spacing: 0.28em; text-indent: 0.28em; }
+    .tag { font-size: 12px; letter-spacing: 0.08em; padding: 0 6px; }
+    .collection { margin-top: 44px; }
+    .collection h2 { letter-spacing: 0.28em; text-indent: 0.28em; }
+    .group { margin-top: 28px; }
+    .list { grid-template-columns: 1fr; gap: 8px; }
+    a.item, .item { padding: 13px 14px; border-radius: 10px; }
+    .item .name { font-size: 14.5px; }
+    footer { margin-top: 40px; }
+  }
+  @media (max-width: 380px) {
+    main { padding: 40px 14px 36px; }
+    .mark { font-size: 50px; }
+    .domain { letter-spacing: 0.2em; text-indent: 0.2em; }
+  }
 </style>
 </head>
 <body>
