@@ -104,63 +104,65 @@
   }
   function baseHue() { return 192 + 78 * (0.5 + 0.5 * Math.sin(t * 0.011)); }
 
-  // ---------- the words, rendered once as a glowing layer ----------
-  let textLayer = null, lines = [];   // lines: {top, bottom, pts sorted by x}
+  // ---------- the words: one silhouette, fitted by its real ink, neon glow ----------
+  let textLayer = null, lines = [], layerW = 0, layerH = 0;
   function buildText() {
-    const mask = document.createElement('canvas'); mask.width = W; mask.height = H;
-    const m = mask.getContext('2d');
+    const raw = document.createElement('canvas'); raw.width = W; raw.height = H;
+    const m = raw.getContext('2d');
     m.fillStyle = '#fff'; m.textAlign = 'center'; m.textBaseline = 'middle';
     const cxp = W / 2, narrow = W < 560;
     const linesArr = narrow ? ['love you', 'forever'] : ['love you forever'];
     let ms = Math.min(W * (narrow ? 0.235 : 0.155), 168);
-    const setMain = s => { m.font = `italic 700 ${s}px Georgia, "Times New Roman", "Songti SC", serif`; };
-    setMain(ms);
+    const setMain = (cc, s) => { cc.font = `italic 700 ${s}px Georgia, "Times New Roman", "Songti SC", serif`; };
+    const setName = (cc, s) => { cc.font = `700 ${s}px "STKaiti", "KaiTi", "Kaiti SC", "Songti SC", serif`; try { cc.letterSpacing = '20px'; } catch (e) {} };
+    setMain(m, ms);
     const longest = linesArr.reduce((a, b) => m.measureText(a).width > m.measureText(b).width ? a : b);
-    while (m.measureText(longest).width > W * 0.9 && ms > 20) { ms -= 3; setMain(ms); }
+    while (m.measureText(longest).width > W * 0.9 && ms > 20) { ms -= 3; setMain(m, ms); }
     const lineH = ms * 1.18;
     const y0 = H * 0.40 - (linesArr.length - 1) * lineH / 2;
-    const bands = [];
-    linesArr.forEach((ln, i) => {
-      const y = y0 + i * lineH;
-      m.fillText(ln, cxp, y);
-      bands.push({ top: y - ms * 0.62, bottom: y + ms * 0.62, kind: 'main' });
-    });
+    linesArr.forEach((ln, i) => m.fillText(ln, cxp, y0 + i * lineH));
     const nameY = y0 + (linesArr.length - 1) * lineH + ms * 1.12;
     let ns = Math.min(W * 0.145, 90);
-    const setName = s => { m.font = `700 ${s}px "STKaiti", "KaiTi", "Kaiti SC", "Songti SC", serif`; };
-    try { m.letterSpacing = '20px'; } catch (e) {}
-    setName(ns);
-    while (m.measureText('席琼桦').width > W * 0.68 && ns > 20) { ns -= 3; setName(ns); }
+    setName(m, ns);
+    while (m.measureText('席琼桦').width > W * 0.68 && ns > 20) { ns -= 3; setName(m, ns); }
     m.fillText('席琼桦', cxp, nameY);
-    bands.push({ top: nameY - ns * 0.66, bottom: nameY + ns * 0.66, kind: 'name' });
 
-    // glowing render of the same layout
+    // fit by the REAL ink bounds, one uniform scale — never stretched, never off-screen
+    const img = m.getImageData(0, 0, W, H).data;
+    let minX = W, maxX = 0, minY = H, maxY = 0;
+    for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2)
+      if (img[(y * W + x) * 4 + 3] > 110) { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
+    const inkW = Math.max(1, maxX - minX), inkH = Math.max(1, maxY - minY);
+    const s = Math.min(1, (W * 0.92) / inkW, (H * 0.52) / inkH);
+    const ccx = (minX + maxX) / 2, ccy = (minY + maxY) / 2;
+
+    // neon: the silhouette throws a saturated halo, the tube core stays white-hot
     textLayer = document.createElement('canvas');
     textLayer.width = W * DPR; textLayer.height = H * DPR;
-    const c = textLayer.getContext('2d'); c.scale(DPR, DPR);
-    c.textAlign = 'center'; c.textBaseline = 'middle';
-    const drawAll = (pass) => {
-      linesArr.forEach((ln, i) => { setMainOn(c, ms); c.fillText(ln, cxp, y0 + i * lineH); });
-      setNameOn(c, ns); c.fillText('席琼桦', cxp, nameY);
-    };
-    function setMainOn(cc, s) { cc.font = `italic 700 ${s}px Georgia, "Times New Roman", "Songti SC", serif`; }
-    function setNameOn(cc, s) { cc.font = `700 ${s}px "STKaiti", "KaiTi", "Kaiti SC", "Songti SC", serif`; try { cc.letterSpacing = '20px'; } catch (e) {} }
+    layerW = W; layerH = H;
+    const c = textLayer.getContext('2d');
+    c.setTransform(DPR, 0, 0, DPR, 0, 0);
     const hue = baseHue();
-    c.shadowColor = `hsla(${hue + 20}, 95%, 68%, .95)`;
-    for (const [blur, style] of [[26, `hsla(${hue + 24}, 92%, 62%, .55)`], [13, `hsla(${hue + 12}, 95%, 74%, .8)`], [4, 'rgba(240,249,255,.96)']]) {
-      c.shadowBlur = blur; c.fillStyle = style; drawAll();
-    }
-    c.shadowBlur = 0;
+    const place = () => { c.save(); c.translate(W / 2, H * 0.44); c.scale(s, s); c.translate(-ccx, -ccy); c.drawImage(raw, 0, 0); c.restore(); };
+    c.shadowColor = `hsla(${hue + 26}, 96%, 66%, .95)`;
+    c.shadowBlur = 30; place(); place();
+    c.shadowBlur = 13; place();
+    c.shadowBlur = 0; place();
 
-    // ink points per band, sorted by x — the meteor paths
-    const img = m.getImageData(0, 0, W, H).data;
-    lines = bands.map(b => ({ ...b, pts: [] }));
-    for (let y = 0; y < H; y += 3)
-      for (let x = 0; x < W; x += 3)
-        if (img[(y * W + x) * 4 + 3] > 110) {
-          const L = lines.find(L => y >= L.top && y <= L.bottom);
-          if (L) L.pts.push({ x, y });
-        }
+    // ink points of the finished layer, clustered into lines — the meteor paths
+    const probe = document.createElement('canvas'); probe.width = W; probe.height = H;
+    const pc = probe.getContext('2d'); pc.drawImage(textLayer, 0, 0, W, H);
+    const pimg = pc.getImageData(0, 0, W, H).data;
+    lines = [];
+    let start = -1;
+    for (let y = 0; y <= H; y++) {
+      let has = false;
+      if (y < H) for (let x = 0; x < W; x += 3) if (pimg[(y * W + x) * 4 + 3] > 110) { has = true; break; }
+      if (has && start < 0) start = y;
+      if (!has && start >= 0) { if (y - start > 8) lines.push({ top: start, bottom: y - 1, pts: [] }); start = -1; }
+    }
+    for (let y = 0; y < H; y += 3) for (let x = 0; x < W; x += 3)
+      if (pimg[(y * W + x) * 4 + 3] > 110) { const L = lines.find(L => y >= L.top - 2 && y <= L.bottom + 2); if (L) L.pts.push({ x, y }); }
     for (const L of lines) L.pts.sort((a, b) => a.x - b.x);
   }
 
@@ -321,9 +323,10 @@
         if (p <= 0) continue;
         const frontier = -20 + p * (W + 40);
         ctx.save();
-        ctx.globalAlpha = mode === 'tracing' ? Math.min(1, p * 1.6) : litAlpha * (0.92 + 0.08 * Math.sin(t * 1.4));
+        const neonFlick = (Math.sin(t * 23.7) + Math.sin(t * 7.3)) > 1.93 ? 0.7 : 1;   // rare neon buzz dip
+        ctx.globalAlpha = mode === 'tracing' ? Math.min(1, p * 1.6) : litAlpha * (0.93 + 0.07 * Math.sin(t * 1.4)) * neonFlick;
         ctx.beginPath(); ctx.rect(0, L.top - 6, frontier, (L.bottom - L.top) + 12); ctx.clip();
-        ctx.drawImage(textLayer, 0, 0, W, H);
+        ctx.drawImage(textLayer, 0, 0, layerW, layerH);
         ctx.restore();
         // its tracing meteor
         if (mode === 'tracing' && p > 0 && p < 1 && L.pts.length) {
