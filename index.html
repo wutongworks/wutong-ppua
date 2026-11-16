@@ -3,35 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>wutong.pp.ua</title>
-<meta name="description" content="wutong.pp.ua">
+<title>wutong.pp.ua — Domain Collection</title>
+<meta name="description" content="wutong.pp.ua — Domain Collection">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { height: 100%; }
+  html, body { min-height: 100%; }
   body {
     background: #0a0c10;
     color: #eef1f5;
     font-family: "Avenir Next", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
+    overflow-x: hidden;
   }
   body::before {
     content: "";
     position: fixed;
     inset: 0;
     background:
-      radial-gradient(60% 45% at 50% 30%, rgba(245, 181, 68, 0.10), transparent 70%),
+      radial-gradient(60% 45% at 50% 22%, rgba(245, 181, 68, 0.10), transparent 70%),
       radial-gradient(45% 35% at 78% 82%, rgba(255, 138, 92, 0.06), transparent 70%);
     pointer-events: none;
   }
-  main { text-align: center; padding: 24px; position: relative; }
+  main { max-width: 880px; margin: 0 auto; padding: 72px 24px 64px; position: relative; }
+  .hero { text-align: center; }
   .mark {
+    display: inline-block;
     font-size: clamp(56px, 13vw, 128px);
     font-weight: 650;
     letter-spacing: 0.015em;
-    line-height: 1;
+    line-height: 1.18;
+    padding: 0 0.06em 0.14em;
+    overflow: visible;
     background: linear-gradient(100deg, #eef1f5 20%, #f5b544 55%, #d8b26a 75%, #cdd6df 100%);
     -webkit-background-clip: text;
     background-clip: text;
@@ -41,7 +42,7 @@
   .rule {
     width: 64px;
     height: 1px;
-    margin: 30px auto 22px;
+    margin: 18px auto 22px;
     background: linear-gradient(90deg, transparent, #d8b26a, transparent);
   }
   .domain {
@@ -57,14 +58,105 @@
     letter-spacing: 0.14em;
     color: #6b7889;
   }
+  .collection { margin-top: 64px; }
+  .collection h2 {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    color: #d8b26a;
+    text-indent: 0.42em;
+  }
+  .collection .sub {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: #6b7889;
+  }
+  .group { margin-top: 36px; }
+  .group h3 {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: #9aa7b5;
+    margin-bottom: 12px;
+  }
+  .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+  a.item, .item {
+    display: block;
+    padding: 14px 16px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    background: rgba(255,255,255,0.03);
+    color: #eef1f5;
+    text-decoration: none;
+  }
+  a.item:hover { border-color: rgba(216,178,106,0.55); background: rgba(255,255,255,0.05); }
+  .item .name { font-size: 15px; font-weight: 600; letter-spacing: 0.01em; word-break: break-all; }
+  .item .note { margin-top: 5px; font-size: 12px; line-height: 1.5; color: #9aa7b5; }
+  .item .status { display: inline-block; margin-top: 8px; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #d8b26a; }
+  .item.pending { opacity: 0.72; }
+  footer { margin-top: 56px; text-align: center; font-size: 11px; letter-spacing: 0.14em; color: #4c5867; }
 </style>
 </head>
 <body>
   <main>
-    <div class="mark">wutong</div>
-    <div class="rule"></div>
-    <div class="domain">wutong.pp.ua</div>
-    <div class="tag">A quiet corner of the internet.</div>
+    <section class="hero">
+      <div class="mark">wutong</div>
+      <div class="rule"></div>
+      <div class="domain">wutong.pp.ua</div>
+      <div class="tag">A quiet corner of the internet.</div>
+    </section>
+
+    <section class="collection">
+      <h2>Domain Collection</h2>
+      <p class="sub">All wutong domains, in one place.</p>
+
+      <div class="group">
+        <h3>Primary</h3>
+        <div class="list">
+          <a class="item" href="http://wutong.qd.je/"><span class="name">wutong.qd.je</span><div class="note">Front door — personal homepage, public only</div><span class="status">Active</span></a>
+          <a class="item" href="https://wutong.dpdns.org/"><span class="name">wutong.dpdns.org</span><div class="note">Infrastructure — self-hosted services, e.g. dsh.wutong.dpdns.org</div><span class="status">Active</span></a>
+          <a class="item" href="http://wutong.pp.ua/"><span class="name">wutong.pp.ua</span><div class="note">This site — long-term projects &amp; backup front door</div><span class="status">Active · Exp 2027-11-16</span></a>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>Active</h3>
+        <div class="list">
+          <a class="item" href="https://wutong.is-cool.dev/"><span class="name">wutong.is-cool.dev</span><div class="note">Approved, pointing to GitHub Pages</div><span class="status">Active</span></a>
+          <a class="item" href="https://alcindora.github.io/"><span class="name">alcindora.github.io</span><div class="note">GitHub Pages home</div><span class="status">Active</span></a>
+          <a class="item" href="https://leonwutong.codeberg.page/"><span class="name">leonwutong.codeberg.page</span><div class="note">Codeberg Pages</div><span class="status">Active</span></a>
+          <a class="item" href="http://wutong.dynv6.net/"><span class="name">wutong.dynv6.net</span><div class="note">DDNS reserve</div><span class="status">Active</span></a>
+          <a class="item" href="http://wutong.freeddns.org/"><span class="name">wutong.freeddns.org</span><div class="note">Dynu reserve</div><span class="status">Active</span></a>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>Reserve</h3>
+        <div class="list">
+          <div class="item"><span class="name">wutong.crabdance.com</span><div class="note">FreeDNS reserve / testing</div><span class="status">Held</span></div>
+          <div class="item"><span class="name">wutong.strangled.net</span><div class="note">FreeDNS reserve / testing</div><span class="status">Held</span></div>
+          <div class="item"><span class="name">wutong.runs-at.dev</span><div class="note">Claimed, deliberately not lit — lighting it would replace wutong.qd.je</div><span class="status">Held</span></div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>Pending review</h3>
+        <div class="list">
+          <div class="item pending"><span class="name">wutong.js.cool</span><div class="note">Awaiting review</div><span class="status">Pending</span></div>
+          <div class="item pending"><span class="name">wutong.is-a-fullstack.dev</span><div class="note">Awaiting review</div><span class="status">Pending</span></div>
+          <div class="item pending"><span class="name">wutong.is-a-good.dev</span><div class="note">PR open, checks passed, awaiting merge</div><span class="status">Pending</span></div>
+          <div class="item pending"><span class="name">wutongagi.eu.org</span><div class="note">eu.org manual review</div><span class="status">Pending</span></div>
+          <div class="item pending"><span class="name">wutongai.eu.org</span><div class="note">eu.org manual review</div><span class="status">Pending</span></div>
+          <div class="item pending"><span class="name">dshrelay.eu.org</span><div class="note">eu.org manual review</div><span class="status">Pending</span></div>
+        </div>
+      </div>
+    </section>
+    <footer>WUTONG.PP.UA</footer>
   </main>
 </body>
 </html>
